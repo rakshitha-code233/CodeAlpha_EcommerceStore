@@ -1,0 +1,32 @@
+{% extends 'store/base.html' %}
+{% block title %}My Orders | MarketLane{% endblock %}
+{% block content %}
+<h2>My Orders</h2>
+{% if orders %}
+    {% for order in orders %}
+    <section class="order-card">
+        <h3>Order #{{ order.id }}</h3>
+        <p>Placed: {{ order.created_at|date:"d M Y, H:i" }}</p>
+        <p>Status: {{ order.status }}</p>
+        <p>Payment method: {{ order.get_payment_method_display }}</p>
+        <p>Payment status: {{ order.get_payment_status_display }}</p>
+        {% if order.shipping_address %}
+            <p>Ship to: {{ order.shipping_name }}, {{ order.shipping_address }}, {{ order.shipping_city }} {{ order.shipping_postal_code }}</p>
+        {% endif %}
+        <ul>
+        {% for item in order.items.all %}
+            <li>{{ item.product.name }} — {{ item.quantity }} × ₹{{ item.price_at_purchase }}</li>
+        {% endfor %}
+        </ul>
+        <strong>Total: ₹{{ order.total }}</strong>
+        {% if order.payment_status == "pending" and order.payment_method == "razorpay" %}
+            <a class="button-link resume-payment" href="{% url 'pay_order' order.id %}">Continue payment</a>
+        {% elif order.payment_status == "pending" and order.payment_method == "cash_on_delivery" %}
+            <p class="muted">Pay when your order is delivered.</p>
+        {% endif %}
+    </section>
+    {% endfor %}
+{% else %}
+    <p>You haven't placed any orders yet.</p>
+{% endif %}
+{% endblock %}

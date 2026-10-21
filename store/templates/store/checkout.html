@@ -1,0 +1,36 @@
+{% extends 'store/base.html' %}
+{% block title %}Checkout | MarketLane{% endblock %}
+{% block content %}
+<h2>Checkout</h2>
+<div class="checkout-layout">
+    <form method="post" class="form-card checkout-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            {% if field.name != "payment_method" %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+            {% endif %}
+        {% endfor %}
+        <fieldset class="payment-method-field">
+            <legend>{{ form.payment_method.label }}</legend>
+            {{ form.payment_method }}
+            {{ form.payment_method.errors }}
+        </fieldset>
+        <button type="submit">Place order</button>
+        {% if not payment_configured %}
+            <p class="payment-config-notice">Online payment is unavailable right now. You can still place your order with cash on delivery.</p>
+        {% endif %}
+    </form>
+    <aside class="order-summary">
+        <h3>Order summary</h3>
+        {% for item in items %}
+            <p>{{ item.product.name }} × {{ item.quantity }} <strong>₹{{ item.subtotal }}</strong></p>
+        {% endfor %}
+        <hr>
+        <p class="summary-total">Total <strong>₹{{ total }}</strong></p>
+        <p class="muted">Choose Razorpay for verified online payment, or pay cash when your order is delivered.</p>
+    </aside>
+</div>
+{% endblock %}

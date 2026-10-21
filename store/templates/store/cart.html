@@ -1,0 +1,51 @@
+{% extends 'store/base.html' %}
+{% block title %}Your Cart | MarketLane{% endblock %}
+{% block content %}
+<h2>Your Shopping Cart</h2>
+{% if has_items %}
+<div class="table-wrap">
+<table>
+    <thead><tr><th>Product</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for item in items %}
+    <tr>
+        <td>{{ item.product.name }}</td>
+        <td>₹{{ item.product.price }}</td>
+        <td>
+            <form method="post" action="{% url 'update_cart' item.product.id %}" class="quantity-form">
+                {% csrf_token %}
+                <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
+                <input id="quantity-{{ item.product.id }}" type="number" name="quantity" min="1" max="{{ item.product.stock }}" value="{{ item.quantity }}" {% if not item.product.stock %}disabled{% endif %}>
+                <button type="submit" {% if not item.product.stock %}disabled{% endif %}>Update</button>
+            </form>
+            {% if item.quantity > item.product.stock %}<p class="out-of-stock">Only {{ item.product.stock }} in stock. Update or remove this item.</p>{% endif %}
+        </td>
+        <td>₹{{ item.subtotal }}</td>
+        <td>
+            <form method="post" action="{% url 'remove_from_cart' item.product.id %}">
+                {% csrf_token %}
+                <button type="submit" class="danger-button">Remove</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+<div class="cart-summary">
+    <h3>Total: ₹{{ total }}</h3>
+    {% if can_checkout %}
+        {% if user.is_authenticated %}
+            <a class="button-link" href="{% url 'checkout' %}">Continue to checkout</a>
+        {% else %}
+            <p><a href="{% url 'login' %}?next={% url 'checkout' %}">Log in</a> to place your order.</p>
+        {% endif %}
+    {% else %}
+        <p class="out-of-stock">Please update or remove items that exceed available stock before checkout.</p>
+    {% endif %}
+</div>
+{% else %}
+<p>Your cart is empty.</p>
+<a class="button-link" href="{% url 'product_list' %}">Browse products</a>
+{% endif %}
+{% endblock %}

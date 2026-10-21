@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fffefa">
+    <meta name="description" content="Browse a curated range of products, compare prices, and shop with ease.">
+    <title>{% block title %}MarketLane | Find your next favourite{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'store/style.css' %}">
+</head>
+<body>
+<header class="site-header">
+    <div class="header-main">
+        <a class="brand" href="{% url 'product_list' %}" aria-label="MarketLane home">
+            <span class="brand-mark">M</span><span>market<span class="brand-accent">lane</span></span>
+        </a>
+        <form class="header-search" method="get" action="{% url 'product_list' %}" role="search">
+            <label class="visually-hidden" for="site-search">Search products</label>
+            <input id="site-search" type="search" name="q" value="{{ request.GET.q }}" placeholder="Search products, brands and more">
+            <button type="submit" aria-label="Search">Search</button>
+        </form>
+        <nav class="header-actions" aria-label="Account and shopping">
+        {% if user.is_authenticated %}
+            <a class="header-action account-action" href="{% url 'order_history' %}">
+                <span class="action-caption">Hello, {{ user.username }}</span>
+                <strong>My orders</strong>
+            </a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="header-action logout-action">Sign out</button>
+            </form>
+        {% else %}
+            <a class="header-action account-action" href="{% url 'login' %}">
+                <span class="action-caption">Welcome</span><strong>Sign in</strong>
+            </a>
+            <a class="header-action account-action register-action" href="{% url 'register' %}">
+                <span class="action-caption">New here?</span><strong>Create account</strong>
+            </a>
+        {% endif %}
+            <a class="cart-action" href="{% url 'cart_detail' %}">
+                <svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.4L22 9H7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    <circle cx="10" cy="20" r="1.5" fill="currentColor"></circle>
+                    <circle cx="18" cy="20" r="1.5" fill="currentColor"></circle>
+                </svg>
+                <span>Cart <b>{{ cart_quantity }}</b></span>
+            </a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    {% if messages %}
+        <section class="messages" aria-live="polite">
+            {% for message in messages %}
+                <p class="message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        </section>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+    <a class="back-to-top" href="#">Back to top ↑</a>
+    <div class="footer-content">
+        <a class="brand footer-brand" href="{% url 'product_list' %}"><span class="brand-mark">M</span><span>market<span class="brand-accent">lane</span></span></a>
+        <p>Good finds. Fair prices. A better way to shop.</p>
+        <p class="footer-note">Pay online with Razorpay or choose cash on delivery at checkout.</p>
+    </div>
+</footer>
+</body>
+</html>

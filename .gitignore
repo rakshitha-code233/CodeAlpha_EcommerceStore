@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+
+# Local databases and uploaded/generated files
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and test artifacts
+.vscode/
+.idea/
+.pytest_cache/
