@@ -12,20 +12,26 @@
         <td>{{ item.product.name }}</td>
         <td>₹{{ item.product.price }}</td>
         <td>
+            {% if user.is_authenticated %}
             <form method="post" action="{% url 'update_cart' item.product.id %}" class="quantity-form">
                 {% csrf_token %}
                 <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
                 <input id="quantity-{{ item.product.id }}" type="number" name="quantity" min="1" max="{{ item.product.stock }}" value="{{ item.quantity }}" {% if not item.product.stock %}disabled{% endif %}>
                 <button type="submit" {% if not item.product.stock %}disabled{% endif %}>Update</button>
             </form>
+            {% else %}
+            {{ item.quantity }}
+            {% endif %}
             {% if item.quantity > item.product.stock %}<p class="out-of-stock">Only {{ item.product.stock }} in stock. Update or remove this item.</p>{% endif %}
         </td>
         <td>₹{{ item.subtotal }}</td>
         <td>
+            {% if user.is_authenticated %}
             <form method="post" action="{% url 'remove_from_cart' item.product.id %}">
                 {% csrf_token %}
                 <button type="submit" class="danger-button">Remove</button>
             </form>
+            {% endif %}
         </td>
     </tr>
     {% endfor %}
@@ -34,14 +40,14 @@
 </div>
 <div class="cart-summary">
     <h3>Total: ₹{{ total }}</h3>
-    {% if can_checkout %}
-        {% if user.is_authenticated %}
+    {% if user.is_authenticated %}
+        {% if can_checkout %}
             <a class="button-link" href="{% url 'checkout' %}">Continue to checkout</a>
         {% else %}
-            <p><a href="{% url 'login' %}?next={% url 'checkout' %}">Log in</a> to place your order.</p>
+            <p class="out-of-stock">Please update or remove items that exceed available stock before checkout.</p>
         {% endif %}
     {% else %}
-        <p class="out-of-stock">Please update or remove items that exceed available stock before checkout.</p>
+        <p><a href="{% url 'login' %}?next={% url 'checkout' %}">Sign in to continue to checkout</a> and manage your cart.</p>
     {% endif %}
 </div>
 {% else %}

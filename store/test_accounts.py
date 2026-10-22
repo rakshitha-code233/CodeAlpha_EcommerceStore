@@ -49,6 +49,45 @@ class AccountAccessTests(TestCase):
         new_user = get_user_model().objects.get(username="new-customer")
         self.assertEqual(new_user.email, "new-customer@example.com")
         self.assertTrue(new_user.check_password("a-strong-test-password"))
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_customer_can_log_in_and_log_out(self):
+        user = get_user_model().objects.create_user(
+            username="login-customer",
+            password="login-test-password",
+        )
+        login_response = self.client.post(
+            reverse("login"),
+            {
+                "username": user.username,
+                "password": "login-test-password",
+            },
+        )
+
+        self.assertRedirects(login_response, reverse("product_list"))
+        self.assertIn("_auth_user_id", self.client.session)
+
+        logout_get_response = self.client.get(reverse("logout"))
+        self.assertEqual(logout_get_response.status_code, 405)
+
+        logout_response = self.client.post(reverse("logout"))
+
+        self.assertRedirects(logout_response, reverse("product_list"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_customer_login_rejects_invalid_password(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": self.user.username,
+                "password": "incorrect-password",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("login"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(response, "Invalid username or password.")
 
     def test_password_reset_email_changes_password(self):
         response = self.client.post(
@@ -99,3 +138,17 @@ class AccountAccessTests(TestCase):
         self.assertContains(login_page, reverse("register"))
         self.assertContains(login_page, reverse("password_reset"))
         self.assertContains(admin_login_page, reverse("password_reset"))
+
+    def test_empty_catalog_does_not_send_customers_to_admin(self):
+        storefront = self.client.get(reverse("product_list"))
+        self.assertContains(storefront, "The store is being stocked.")
+        self.assertNotContains(storefront, reverse("admin:index"))
+
+        self.client.force_login(self.user)
+        storefront = self.client.get(reverse("product_list"))
+        self.assertNotContains(storefront, reverse("admin:index"))
+
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        storefront = self.client.get(reverse("product_list"))
+        self.assertContains(storefront, reverse("admin:index"))

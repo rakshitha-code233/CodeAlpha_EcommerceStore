@@ -1,15 +1,17 @@
 import logging
 import uuid
 from decimal import Decimal
+from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from requests.exceptions import RequestException
@@ -112,9 +114,19 @@ def _add_product_to_cart(request, product):
     return True
 
 
+def _sign_in_to_shop(request, next_url):
+    messages.info(request, "Please sign in before adding items or placing an order.")
+    return redirect(f"{reverse('login')}?{urlencode({'next': next_url})}")
+
+
 @require_POST
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
+    if not request.user.is_authenticated:
+        return _sign_in_to_shop(
+            request,
+            reverse("product_detail", args=[product.id]),
+        )
     if not _add_product_to_cart(request, product):
         return redirect("product_detail", product_id=product.id)
     messages.success(request, f"{product.name} added to your cart.")
@@ -124,6 +136,11 @@ def add_to_cart(request, product_id):
 @require_POST
 def buy_now(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
+    if not request.user.is_authenticated:
+        return _sign_in_to_shop(
+            request,
+            reverse("product_detail", args=[product.id]),
+        )
     if not _add_product_to_cart(request, product):
         return redirect("product_detail", product_id=product.id)
     return redirect("checkout")
@@ -131,6 +148,8 @@ def buy_now(request, product_id):
 
 @require_POST
 def remove_from_cart(request, product_id):
+    if not request.user.is_authenticated:
+        return _sign_in_to_shop(request, reverse("cart_detail"))
     cart = _get_cart(request)
     cart.pop(str(product_id), None)
     request.session["cart"] = cart
@@ -140,6 +159,8 @@ def remove_from_cart(request, product_id):
 
 @require_POST
 def update_cart(request, product_id):
+    if not request.user.is_authenticated:
+        return _sign_in_to_shop(request, reverse("cart_detail"))
     cart = _get_cart(request)
     key = str(product_id)
     if key not in cart:

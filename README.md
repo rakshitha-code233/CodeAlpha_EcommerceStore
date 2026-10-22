@@ -42,10 +42,13 @@ static files. Do not use the local SQLite database for a live deployment.
 3. Configure the web service:
    - **Build command:** `pip install -r requirements.txt && python manage.py collectstatic --noinput`
    - On plans with a pre-deploy command, set it to `python manage.py migrate`
-     and use `gunicorn config.wsgi:application` as the start command.
+     and use
+     `python manage.py seed_demo_products && gunicorn config.wsgi:application`
+     as the start command.
    - On plans without a pre-deploy command, use
-     `python manage.py migrate && gunicorn config.wsgi:application` as the
-     start command so migrations run when the service starts.
+     `python manage.py migrate && python manage.py seed_demo_products && gunicorn config.wsgi:application`
+     as the start command so migrations and the sample catalog are ready when
+     the service starts.
 4. Add these environment variables to the web service:
    - `SECRET_KEY`: a newly generated, private Django secret key.
    - `DEBUG`: `False`
@@ -76,15 +79,20 @@ static files. Do not use the local SQLite database for a live deployment.
    ```
 
    Do not save the database URL in source control. Sign in at `/admin/` to add
-   categories and products.
+   categories and products. Customer accounts created through **Create account**
+   are not administrators and cannot access `/admin/`; use the separately
+   created superuser account for store management.
 
 Production settings fail at startup if `DEBUG=False` but `SECRET_KEY` or
 `DATABASE_URL` is missing. Keep secrets in the host's environment-variable
 settings, never in source control. Persistent media uploads are not configured;
 product images should use publicly accessible image URLs.
 
-Customer registration is available from the **Create account** link and
-requires an email address so password recovery can work. Password reset links
+Customers can browse without an account, but must register or sign in before
+adding items to the cart or placing an order. Checkout collects shipping
+details and supports cash on delivery or Razorpay when configured. Customer
+registration is available from the **Create account** link and requires an
+email address so password recovery can work. Password reset links
 are sent by email; configure SMTP environment variables on Render before
 relying on password recovery. In local development, reset emails are printed
 to the runserver console. The admin login also links to the same password
@@ -103,11 +111,12 @@ The seed command is safe to rerun: it keeps existing sample products and does no
 
 ## Using the store
 
-1. Create an account through **Create account**, or sign in.
+1. Create an account through **Create account** or sign in.
 2. Browse and search the product catalog, then open a product to see its details.
 3. Add items to the cart, update quantities, and proceed to checkout.
 4. Enter shipping details and choose **Cash on delivery** or **Razorpay** (when configured).
-5. View placed orders and their payment status in **My Orders**. Manage products, inventory, and orders in the admin panel.
+5. View placed orders and their payment status in **My Orders**. Manage
+   products, inventory, and orders in the admin panel.
 
 Run the storefront tests and Django's configuration check with:
 

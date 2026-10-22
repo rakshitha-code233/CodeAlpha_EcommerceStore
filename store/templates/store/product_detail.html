@@ -21,6 +21,7 @@
             {% if product.stock %}
                 <p class="detail-stock"><span class="stock-dot"></span> In stock <span class="stock-count">({{ product.stock }} available)</span></p>
                 <p class="delivery-note">Available to order today. Delivery details are confirmed by the store.</p>
+                {% if user.is_authenticated %}
                 <form method="post" action="{% url 'add_to_cart' product.id %}">
                     {% csrf_token %}
                     <button type="submit" class="add-button detail-add-button">Add to cart</button>
@@ -30,6 +31,10 @@
                     <button type="submit" class="add-button buy-now-button">Buy now</button>
                 </form>
                 <a class="button-link buy-button" href="{% url 'cart_detail' %}">View your cart</a>
+                {% else %}
+                <a class="add-button detail-add-button" href="{% url 'login' %}?next={% url 'product_detail' product.id %}">Add to cart</a>
+                <a class="add-button buy-now-button" href="{% url 'login' %}?next={% url 'product_detail' product.id %}">Buy now</a>
+                {% endif %}
             {% else %}
                 <p class="out-of-stock">Currently unavailable</p>
                 <p class="delivery-note">We don't know when this item will be back in stock.</p>

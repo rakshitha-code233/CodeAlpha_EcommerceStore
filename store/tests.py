@@ -4,6 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from razorpay.errors import SignatureVerificationError
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 from .models import Category, Order, OrderItem, Product
 
@@ -23,6 +24,7 @@ class StorefrontTests(TestCase):
             password="test-password-123",
             email="shopper@example.com",
         )
+        self.client.force_login(self.user)
 
     def test_catalog_search_category_and_sort(self):
         self.product.image_url = "https://images.example.com/django-guide.jpg"
@@ -145,17 +147,65 @@ class StorefrontTests(TestCase):
         self.assertRedirects(response, reverse("checkout"))
         self.assertEqual(self.client.session["cart"], {str(self.product.id): 1})
 
-    def test_guest_buy_now_redirects_to_login_and_preserves_cart(self):
-        response = self.client.post(reverse("buy_now", args=[self.product.id]))
+    def test_guest_must_sign_in_before_adding_or_buying(self):
+        self.client.logout()
+        product_url = reverse("product_detail", args=[self.product.id])
+        login_link = f"{reverse('login')}?next={product_url}"
+        login_url = (
+            f"{reverse('login')}?{urlencode({'next': product_url})}"
+        )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("checkout"))
-        login_response = self.client.get(response.url)
+        storefront = self.client.get(reverse("product_list"))
+        self.assertContains(storefront, ">Add to cart</a>")
+        self.assertContains(storefront, ">Buy now</a>")
+        self.assertContains(storefront, f'href="{login_link}"')
+        self.assertNotContains(storefront, reverse("add_to_cart", args=[self.product.id]))
+        self.assertNotContains(storefront, reverse("buy_now", args=[self.product.id]))
+
+        detail = self.client.get(product_url)
+        self.assertContains(detail, ">Add to cart</a>")
+        self.assertContains(detail, ">Buy now</a>")
+        self.assertContains(detail, f'href="{login_link}"')
+
+        add_response = self.client.post(
+            reverse("add_to_cart", args=[self.product.id]),
+        )
+        self.assertRedirects(add_response, login_url)
+
+        buy_response = self.client.post(
+            reverse("buy_now", args=[self.product.id]),
+        )
+        self.assertRedirects(buy_response, login_url)
+        self.assertEqual(self.client.session.get("cart", {}), {})
+
+    def test_guest_checkout_redirects_to_login_and_preserves_cart(self):
+        self.client.logout()
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        response = self.client.get(reverse("checkout"))
+
         self.assertRedirects(
-            login_response,
-            f"{reverse('login')}?next={reverse('checkout')}",
+            response,
+            f"{reverse('login')}?{urlencode({'next': reverse('checkout')})}",
         )
         self.assertEqual(self.client.session["cart"], {str(self.product.id): 1})
+
+    def test_guest_with_existing_cart_is_prompted_to_sign_in_before_checkout(self):
+        self.client.logout()
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        response = self.client.get(reverse("cart_detail"))
+
+        self.assertContains(response, "Sign in to continue to checkout")
+        self.assertContains(
+            response,
+            f'{reverse("login")}?next={reverse("checkout")}',
+        )
+        self.assertNotContains(response, "Continue to checkout")
 
     def test_product_detail_shows_related_products_and_stock(self):
         related = Product.objects.create(
