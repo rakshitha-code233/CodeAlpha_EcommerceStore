@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -206,8 +208,13 @@ def register(request):
         password1 = request.POST.get("password1", "")
         password2 = request.POST.get("password2", "")
 
-        if not username or not password1:
-            messages.error(request, "Username and password are required.")
+        if not username or not email or not password1:
+            messages.error(request, "Username, email, and password are required.")
+            return redirect("register")
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Enter a valid email address.")
             return redirect("register")
         if password1 != password2:
             messages.error(request, "Passwords do not match.")

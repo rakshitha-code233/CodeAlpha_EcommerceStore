@@ -4,7 +4,7 @@ A responsive Django marketplace storefront with:
 - Product catalog that displays active products across all categories, with search and price sorting
 - Product detail pages with large product imagery, prices, and stock availability
 - Session-based cart with quantity updates and stock checks
-- Account registration, login, logout, and customer order history
+- Account registration, login, password reset, logout, and customer order history
 - Shipping/contact checkout, order processing, cash on delivery, and optional Razorpay payment verification
 - Admin management for categories, products, inventory, and orders
 - SQLite database for products, categories, users, orders, and order items
@@ -41,10 +41,11 @@ static files. Do not use the local SQLite database for a live deployment.
    that repository.
 3. Configure the web service:
    - **Build command:** `pip install -r requirements.txt && python manage.py collectstatic --noinput`
-   - **Pre-deploy command:** `python manage.py migrate` (if this option is not
-     available on your plan, run the migration from the service shell after
-     deployment and before opening the site to customers).
-   - **Start command:** `gunicorn config.wsgi:application`
+   - On plans with a pre-deploy command, set it to `python manage.py migrate`
+     and use `gunicorn config.wsgi:application` as the start command.
+   - On plans without a pre-deploy command, use
+     `python manage.py migrate && gunicorn config.wsgi:application` as the
+     start command so migrations run when the service starts.
 4. Add these environment variables to the web service:
    - `SECRET_KEY`: a newly generated, private Django secret key.
    - `DEBUG`: `False`
@@ -55,16 +56,40 @@ static files. Do not use the local SQLite database for a live deployment.
    - `DATABASE_URL`: the internal PostgreSQL connection URL provided by Render.
    - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`: optional; use live credentials
      only when the site is ready to accept real payments.
+   - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`,
+     `EMAIL_HOST_PASSWORD`, and `DEFAULT_FROM_EMAIL`: SMTP settings required to
+     deliver password reset links in production. Use an email provider's SMTP
+     credentials or app password; keep credentials in Render environment
+     variables, never in source control.
    - `SECURE_SSL_REDIRECT`: `True` once HTTPS is active. `SECURE_HSTS_SECONDS`
      can be set to a positive duration after HTTPS has been confirmed.
-5. Once the service is deployed and migrations have run, open its shell and run
-   `python manage.py createsuperuser`. Sign in at `/admin/` to add categories
-   and products.
+5. Once the service is deployed and migrations have run, create a Django
+   superuser. If your plan provides a service shell, run
+   `python manage.py createsuperuser` there. Otherwise, from a local checkout,
+   set `DATABASE_URL` to the database's **external** connection URL in a
+   PowerShell session and run:
+
+   ```powershell
+   $env:DATABASE_URL = "your external PostgreSQL URL"
+   python manage.py createsuperuser
+   Remove-Item Env:DATABASE_URL
+   ```
+
+   Do not save the database URL in source control. Sign in at `/admin/` to add
+   categories and products.
 
 Production settings fail at startup if `DEBUG=False` but `SECRET_KEY` or
 `DATABASE_URL` is missing. Keep secrets in the host's environment-variable
 settings, never in source control. Persistent media uploads are not configured;
 product images should use publicly accessible image URLs.
+
+Customer registration is available from the **Create account** link and
+requires an email address so password recovery can work. Password reset links
+are sent by email; configure SMTP environment variables on Render before
+relying on password recovery. In local development, reset emails are printed
+to the runserver console. The admin login also links to the same password
+reset flow; an administrator can reset their password only if their account
+has a working email address.
 
 Sign in to the admin panel to add categories and products. Add as many product types and categories as needed; the storefront displays all active products together rather than filtering by category. Paste a publicly accessible, direct image URL in a product's image URL field; the admin product list shows an image preview. Products must be active and have available stock to be purchasable. Product images are fetched from their URL by the shopper's browser, so choose URLs that allow public viewing.
 

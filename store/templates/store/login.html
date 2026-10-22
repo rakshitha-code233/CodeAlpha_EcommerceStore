@@ -12,6 +12,7 @@
         <input type="password" id="password" name="password" required>
         <button type="submit">Login</button>
     </form>
+    <p><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
     <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
 </div>
 {% endblock %}
