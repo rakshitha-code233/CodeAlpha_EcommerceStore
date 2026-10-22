@@ -31,6 +31,41 @@ Open:
 - Store: http://127.0.0.1:8000/
 - Admin: http://127.0.0.1:8000/admin/
 
+## Deploying to Render
+
+This project supports PostgreSQL in production and uses WhiteNoise to serve its
+static files. Do not use the local SQLite database for a live deployment.
+
+1. Push the project to a GitHub repository.
+2. Create a PostgreSQL database and a Python web service in Render, connected to
+   that repository.
+3. Configure the web service:
+   - **Build command:** `pip install -r requirements.txt && python manage.py collectstatic --noinput`
+   - **Pre-deploy command:** `python manage.py migrate` (if this option is not
+     available on your plan, run the migration from the service shell after
+     deployment and before opening the site to customers).
+   - **Start command:** `gunicorn config.wsgi:application`
+4. Add these environment variables to the web service:
+   - `SECRET_KEY`: a newly generated, private Django secret key.
+   - `DEBUG`: `False`
+   - `ALLOWED_HOSTS`: your service hostname, for example
+     `your-store.onrender.com` (comma-separated if using multiple hosts).
+   - `CSRF_TRUSTED_ORIGINS`: your full HTTPS site origin, for example
+     `https://your-store.onrender.com`.
+   - `DATABASE_URL`: the internal PostgreSQL connection URL provided by Render.
+   - `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`: optional; use live credentials
+     only when the site is ready to accept real payments.
+   - `SECURE_SSL_REDIRECT`: `True` once HTTPS is active. `SECURE_HSTS_SECONDS`
+     can be set to a positive duration after HTTPS has been confirmed.
+5. Once the service is deployed and migrations have run, open its shell and run
+   `python manage.py createsuperuser`. Sign in at `/admin/` to add categories
+   and products.
+
+Production settings fail at startup if `DEBUG=False` but `SECRET_KEY` or
+`DATABASE_URL` is missing. Keep secrets in the host's environment-variable
+settings, never in source control. Persistent media uploads are not configured;
+product images should use publicly accessible image URLs.
+
 Sign in to the admin panel to add categories and products. Add as many product types and categories as needed; the storefront displays all active products together rather than filtering by category. Paste a publicly accessible, direct image URL in a product's image URL field; the admin product list shows an image preview. Products must be active and have available stock to be purchasable. Product images are fetched from their URL by the shopper's browser, so choose URLs that allow public viewing.
 
 To add nine sample products across Beauty, Dresses, and Stationery with demo images, run:
