@@ -29,6 +29,14 @@ DEMO_PRODUCTS = (
         "stock": 15,
     },
     {
+        "category": "Beauty",
+        "name": "Vitamin C Night Moisturizer",
+        "price": "599.00",
+        "description": "A lightweight night moisturizer for a simple evening skincare routine.",
+        "image_url": "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=85",
+        "stock": 20,
+    },
+    {
         "category": "Dresses",
         "name": "Floral Day Dress",
         "price": "1299.00",
@@ -53,6 +61,14 @@ DEMO_PRODUCTS = (
         "stock": 14,
     },
     {
+        "category": "Dresses",
+        "name": "Linen Midi Dress",
+        "price": "1499.00",
+        "description": "A relaxed midi dress for warm days, casual outings, and weekend plans.",
+        "image_url": "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=85",
+        "stock": 10,
+    },
+    {
         "category": "Stationery",
         "name": "Linen Cover Notebook",
         "price": "249.00",
@@ -75,6 +91,14 @@ DEMO_PRODUCTS = (
         "description": "A cheerful stationery set for organising your desk, notes, and study sessions.",
         "image_url": "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=900&q=85",
         "stock": 22,
+    },
+    {
+        "category": "Stationery",
+        "name": "Hardcover Sketchbook",
+        "price": "399.00",
+        "description": "A sturdy sketchbook for drawing, journaling, and collecting creative ideas.",
+        "image_url": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=85",
+        "stock": 25,
     },
 )
 

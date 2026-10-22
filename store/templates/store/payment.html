@@ -18,7 +18,7 @@
         </div>
         {% if payment_configured %}
             <button id="pay-button" class="add-button payment-button" type="button">Pay ₹{{ order.total }} securely</button>
-            <p class="secure-note">Payments are processed by Razorpay. Card details are never stored by this store.</p>
+            <p class="secure-note">Pay securely through Razorpay using UPI or other payment methods enabled for the store. Payment details are never stored by this store.</p>
             <p id="payment-error" class="payment-config-notice" role="alert" hidden></p>
             <form id="payment-verification" method="post" action="{% url 'verify_payment' order.id %}" hidden>
                 {% csrf_token %}

@@ -1,4 +1,5 @@
 import logging
+from smtplib import SMTPException
 import uuid
 from decimal import Decimal
 from urllib.parse import urlencode
@@ -8,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
@@ -35,6 +37,48 @@ def get_razorpay_client():
     return RazorpayClient(
         auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
     )
+
+
+def _notify_store_of_order(order):
+    payment_label = (
+        "Cash on delivery (payment due at delivery)"
+        if order.payment_method == Order.PAYMENT_METHOD_CASH_ON_DELIVERY
+        else f"UPI / online payment (Razorpay): {order.get_payment_status_display()}"
+    )
+    item_lines = [
+        f"- {item.product.name} x {item.quantity} "
+        f"(₹{item.price_at_purchase * item.quantity})"
+        for item in order.items.select_related("product")
+    ]
+    message = "\n".join(
+        [
+            f"Order: #{order.id}",
+            f"Customer: {order.shipping_name}",
+            f"Email: {order.shipping_email}",
+            f"Phone: {order.shipping_phone}",
+            f"Address: {order.shipping_address}, {order.shipping_city} "
+            f"{order.shipping_postal_code}",
+            f"Payment: {payment_label}",
+            "",
+            "Items:",
+            *item_lines,
+            "",
+            f"Total: ₹{order.total}",
+        ]
+    )
+    try:
+        sent_count = send_mail(
+            subject=f"New order #{order.id}",
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[settings.ORDER_NOTIFICATION_EMAIL],
+            fail_silently=False,
+        )
+    except (OSError, SMTPException):
+        logger.exception("Could not send store notification for order %s.", order.id)
+        return
+    if sent_count != 1:
+        logger.error("Store notification for order %s was not sent.", order.id)
 
 
 def _get_cart(request):
@@ -432,6 +476,7 @@ def checkout(request):
 
                 request.session["cart"] = {}
                 if is_cash_on_delivery:
+                    _notify_store_of_order(held_order)
                     messages.success(
                         request,
                         f"Order #{held_order.id} placed. Pay when your order is delivered.",
@@ -545,6 +590,7 @@ def verify_payment(request, order_id):
             update_fields=["payment_status", "status", "payment_id"]
         )
 
+    _notify_store_of_order(locked_order)
     request.session["cart"] = {}
     messages.success(request, f"Payment received. Order #{order.id} is confirmed.")
     return redirect("order_history")

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -111,7 +112,7 @@ class StorefrontTests(TestCase):
 
         call_command("seed_demo_products", verbosity=0)
 
-        self.assertEqual(first_product_count, 9)
+        self.assertEqual(first_product_count, 12)
         self.assertEqual(first_category_count, 3)
         self.assertEqual(
             Product.objects.filter(category__name__in=demo_categories).count(),
@@ -136,6 +137,18 @@ class StorefrontTests(TestCase):
                 image_url__startswith="https://images.unsplash.com/photo-1456324504439-367cee3b3c32",
             ).exists()
         )
+        for product_name in (
+            "Vitamin C Night Moisturizer",
+            "Linen Midi Dress",
+            "Hardcover Sketchbook",
+        ):
+            self.assertTrue(
+                Product.objects.filter(
+                    name=product_name,
+                    stock__gt=0,
+                    is_active=True,
+                ).exists()
+            )
 
     def test_buy_now_adds_product_and_opens_checkout(self):
         self.client.force_login(self.user)
@@ -267,6 +280,8 @@ class StorefrontTests(TestCase):
     @override_settings(
         RAZORPAY_KEY_ID="rzp_test_example",
         RAZORPAY_KEY_SECRET="test-secret",
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        ORDER_NOTIFICATION_EMAIL="nikitha2081rp@gmail.com",
     )
     def test_checkout_collects_shipping_and_verifies_payment(self):
         add_url = reverse("add_to_cart", args=[self.product.id])
@@ -300,6 +315,7 @@ class StorefrontTests(TestCase):
 
         order = Order.objects.get(user=self.user)
         self.assertRedirects(response, reverse("pay_order", args=[order.id]))
+        self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(order.total, 50)
         self.assertEqual(order.payment_status, Order.PAYMENT_PENDING)
         self.assertEqual(order.payment_gateway_order_id, "order_test_123")
@@ -328,6 +344,11 @@ class StorefrontTests(TestCase):
         self.assertEqual(order.payment_id, "pay_test_456")
         self.assertEqual(order.status, "Placed")
         self.assertEqual(self.client.session["cart"], {})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["nikitha2081rp@gmail.com"])
+        self.assertIn(f"New order #{order.id}", mail.outbox[0].subject)
+        self.assertIn("Django Guide x 2", mail.outbox[0].body)
+        self.assertIn("UPI / online payment (Razorpay): Paid", mail.outbox[0].body)
         gateway_client.utility.verify_payment_signature.assert_called_once()
 
     @override_settings(
@@ -389,6 +410,10 @@ class StorefrontTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 5)
 
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        ORDER_NOTIFICATION_EMAIL="nikitha2081rp@gmail.com",
+    )
     def test_cash_on_delivery_places_order_without_gateway_credentials(self):
         self.client.post(reverse("add_to_cart", args=[self.product.id]))
         self.client.post(reverse("add_to_cart", args=[self.product.id]))
@@ -423,6 +448,10 @@ class StorefrontTests(TestCase):
         self.assertEqual(self.product.stock, 3)
         self.assertEqual(self.client.session["cart"], {})
         gateway.assert_not_called()
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["nikitha2081rp@gmail.com"])
+        self.assertIn("Cash on delivery", mail.outbox[0].body)
+        self.assertIn("payment due at delivery", mail.outbox[0].body)
 
         self.assertRedirects(
             self.client.get(reverse("pay_order", args=[order.id])),

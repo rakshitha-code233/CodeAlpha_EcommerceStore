@@ -36,7 +36,7 @@ class Order(models.Model):
     PAYMENT_METHOD_RAZORPAY = "razorpay"
     PAYMENT_METHOD_CASH_ON_DELIVERY = "cash_on_delivery"
     PAYMENT_METHOD_CHOICES = [
-        (PAYMENT_METHOD_RAZORPAY, "Razorpay"),
+        (PAYMENT_METHOD_RAZORPAY, "UPI / online payment (Razorpay)"),
         (PAYMENT_METHOD_CASH_ON_DELIVERY, "Cash on delivery"),
     ]
 

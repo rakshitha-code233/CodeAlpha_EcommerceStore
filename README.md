@@ -64,6 +64,9 @@ static files. Do not use the local SQLite database for a live deployment.
      deliver password reset links in production. Use an email provider's SMTP
      credentials or app password; keep credentials in Render environment
      variables, never in source control.
+   - `ORDER_NOTIFICATION_EMAIL`: recipient for new COD orders and confirmed
+     online payments. It defaults to `nikitha2081rp@gmail.com`; SMTP settings
+     above must be configured for delivery.
    - `SECURE_SSL_REDIRECT`: `True` once HTTPS is active. `SECURE_HSTS_SECONDS`
      can be set to a positive duration after HTTPS has been confirmed.
 5. Once the service is deployed and migrations have run, create a Django
@@ -90,7 +93,8 @@ product images should use publicly accessible image URLs.
 
 Customers can browse without an account, but must register or sign in before
 adding items to the cart or placing an order. Checkout collects shipping
-details and supports cash on delivery or Razorpay when configured. Customer
+details and supports cash on delivery or UPI/online payment through Razorpay
+when configured. Customer
 registration is available from the **Create account** link and requires an
 email address so password recovery can work. Password reset links
 are sent by email; configure SMTP environment variables on Render before
@@ -101,7 +105,7 @@ has a working email address.
 
 Sign in to the admin panel to add categories and products. Add as many product types and categories as needed; the storefront displays all active products together rather than filtering by category. Paste a publicly accessible, direct image URL in a product's image URL field; the admin product list shows an image preview. Products must be active and have available stock to be purchasable. Product images are fetched from their URL by the shopper's browser, so choose URLs that allow public viewing.
 
-To add nine sample products across Beauty, Dresses, and Stationery with demo images, run:
+To add twelve sample products across Beauty, Dresses, and Stationery with demo images, run:
 
 ```powershell
 python manage.py seed_demo_products
@@ -114,7 +118,7 @@ The seed command is safe to rerun: it keeps existing sample products and does no
 1. Create an account through **Create account** or sign in.
 2. Browse and search the product catalog, then open a product to see its details.
 3. Add items to the cart, update quantities, and proceed to checkout.
-4. Enter shipping details and choose **Cash on delivery** or **Razorpay** (when configured).
+4. Enter shipping details and choose **Cash on delivery** or **UPI / online payment (Razorpay)** (when configured).
 5. View placed orders and their payment status in **My Orders**. Manage
    products, inventory, and orders in the admin panel.
 
@@ -142,8 +146,13 @@ python -m pip install -r requirements.txt
 python manage.py migrate
 ```
 
-Customers can add products to their cart and enter shipping details. When Razorpay keys are configured, they can pay through Razorpay Checkout; the server verifies Razorpay's signature before confirming online orders. Inventory is reserved when an order is placed, and customers can resume pending Razorpay payments from **My Orders**. Use Razorpay's test credentials and test payment methods while developing. Never put the secret key in templates, JavaScript, source control, or a public repository.
+Customers can add products to their cart and enter shipping details. When Razorpay keys are configured and UPI is enabled for the account, they can pay through Razorpay Checkout using UPI or other enabled methods; the server verifies Razorpay's signature before confirming online orders. Inventory is reserved when an order is placed, and customers can resume pending Razorpay payments from **My Orders**. Use Razorpay's test credentials and test payment methods while developing. Never put the secret key in templates, JavaScript, source control, or a public repository.
 
 Cash on delivery is available at checkout and works without payment-gateway credentials. The order is placed with payment marked pending; the customer pays the delivery person, and the store owner can update its payment status in the admin after collection. Razorpay online payment remains unavailable until valid keys are configured. A COD order does not charge a card or process an online payment.
 
-Live payments require live-mode credentials, HTTPS, and production deployment/security configuration. Configure and test Razorpay webhooks and a process for releasing inventory from abandoned pending orders before going live. Product photos should be public image URLs you own or have permission to use; Google image-search results are not automatically licensed for reuse.
+Live payments require live-mode credentials, enabling UPI for the Razorpay account, HTTPS, and production deployment/security configuration. Configure and test Razorpay webhooks and a process for releasing inventory from abandoned pending orders before going live. Product photos should be public image URLs you own or have permission to use; Google image-search results are not automatically licensed for reuse.
+
+The store sends an email to `ORDER_NOTIFICATION_EMAIL` when a COD order is
+placed or an online order is successfully verified as paid. Failed/pending
+online checkouts do not trigger an order-confirmation notification. Configure
+the SMTP settings above and send a test email before relying on these alerts.
