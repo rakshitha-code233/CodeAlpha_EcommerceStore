@@ -28,8 +28,7 @@ python manage.py runserver
 ```
 
 Open:
-- Store: http://127.0.0.1:8000/
-- Admin: http://127.0.0.1:8000/admin/
+https://codealpha-ecommerce-store-ridl.onrender.com/
 
 ## Deploying to Render
 
