@@ -27,8 +27,8 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Open:
-https://codealpha-ecommerce-store-ridl.onrender.com/
+Website link:
+Visit E-commerce Store :  https://codealpha-ecommerce-store-ridl.onrender.com/
 
 ## Deploying to Render
 
